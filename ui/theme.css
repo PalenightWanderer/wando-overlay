@@ -1,0 +1,27 @@
+/* Colours shared by every view. Rust calls setTheme(name), which sets
+   data-theme on <html>. Add a theme by adding a block here and its name to
+   THEMES in src/settings.rs and the Settings screen in dashboard.html. */
+:root, [data-theme="dark"] {
+  --surface: #141c28; --raised: #27364b; --border: #50647e; --frame: #435269;
+  --text: #edf2fa; --muted: #adbed5; --accent: #6688b6; --accent-text: #ffffff;
+  --hover: #344861; --warn: #ffb446; --warn-text: #20160a; --ok: #7fd18b;
+}
+[data-theme="light"] {
+  --surface: #f2f4f8; --raised: #ffffff; --border: #aab4c4; --frame: #8894a8;
+  --text: #17202c; --muted: #4c5a6e; --accent: #2f6fc4; --accent-text: #ffffff;
+  --hover: #dfe6f1; --warn: #b85c00; --warn-text: #ffffff; --ok: #1f7a34;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: transparent; }
+body { font: 20px 'Segoe UI', sans-serif; color: var(--text); }
+button { color: inherit; font: inherit; background: var(--raised); border: 1px solid var(--border); border-radius: 8px; }
+/* Motion. Menus ease in and out and buttons blend between states; keyboard
+   keys opt out (keyboard.html), where any delay reads as input lag. Rust sets
+   <body> to `appear` when a menu panel is shown and `vanish` when it is
+   hidden; a hidden page stays eased away so the next showing starts from
+   nothing. */
+button { transition: background-color .12s, border-color .12s, color .12s; }
+@keyframes appear { from { opacity: 0; transform: scale(.97) translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes vanish { from { opacity: 1; transform: none; } to { opacity: 0; transform: scale(.97) translateY(6px); } }
+body.appear > * { animation: appear .16s ease-out both; }
+body.vanish > * { animation: vanish .13s ease-in both; }

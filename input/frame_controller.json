@@ -1,0 +1,134 @@
+{
+  "action_manifest_version": 0,
+  "name": "Wander Overlay Steam Frame",
+  "description": "Trigger click, grip move, thumb on B/Y for right-click mode, long press for keyboard, thumbstick scroll",
+  "controller_type": "frame_controller",
+  "bindings": {
+    "/actions/overlay": {
+      "poses": [
+        {
+          "path": "/user/hand/left/pose/tip",
+          "output": "/actions/overlay/in/pose"
+        },
+        {
+          "path": "/user/hand/right/pose/tip",
+          "output": "/actions/overlay/in/pose"
+        }
+      ],
+      "sources": [
+        {
+          "path": "/user/hand/left/input/trigger",
+          "mode": "button",
+          "inputs": {
+            "click": {
+              "output": "/actions/overlay/in/trigger"
+            }
+          },
+          "parameters": {
+            "click_activate_threshold": "0.65",
+            "click_deactivate_threshold": "0.55"
+          }
+        },
+        {
+          "path": "/user/hand/left/input/grip",
+          "mode": "button",
+          "inputs": {
+            "click": {
+              "output": "/actions/overlay/in/grip"
+            }
+          },
+          "parameters": {
+            "click_activate_threshold": "0.65",
+            "click_deactivate_threshold": "0.55"
+          }
+        },
+        {
+          "path": "/user/hand/left/input/dpad_right",
+          "mode": "button",
+          "inputs": {
+            "touch": {
+              "output": "/actions/overlay/in/right"
+            },
+            "long": {
+              "output": "/actions/overlay/in/keyboard"
+            }
+          }
+        },
+        {
+          "path": "/user/hand/left/input/dpad_down",
+          "mode": "button",
+          "inputs": {
+            "long": {
+              "output": "/actions/overlay/in/toggle"
+            }
+          }
+        },
+        {
+          "path": "/user/hand/left/input/thumbstick",
+          "mode": "joystick",
+          "inputs": {
+            "position": {
+              "output": "/actions/overlay/in/scroll"
+            }
+          }
+        },
+        {
+          "path": "/user/hand/right/input/trigger",
+          "mode": "button",
+          "inputs": {
+            "click": {
+              "output": "/actions/overlay/in/trigger"
+            }
+          },
+          "parameters": {
+            "click_activate_threshold": "0.65",
+            "click_deactivate_threshold": "0.55"
+          }
+        },
+        {
+          "path": "/user/hand/right/input/grip",
+          "mode": "button",
+          "inputs": {
+            "click": {
+              "output": "/actions/overlay/in/grip"
+            }
+          },
+          "parameters": {
+            "click_activate_threshold": "0.65",
+            "click_deactivate_threshold": "0.55"
+          }
+        },
+        {
+          "path": "/user/hand/right/input/b",
+          "mode": "button",
+          "inputs": {
+            "touch": {
+              "output": "/actions/overlay/in/right"
+            },
+            "long": {
+              "output": "/actions/overlay/in/keyboard"
+            }
+          }
+        },
+        {
+          "path": "/user/hand/right/input/a",
+          "mode": "button",
+          "inputs": {
+            "long": {
+              "output": "/actions/overlay/in/toggle"
+            }
+          }
+        },
+        {
+          "path": "/user/hand/right/input/thumbstick",
+          "mode": "joystick",
+          "inputs": {
+            "position": {
+              "output": "/actions/overlay/in/scroll"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

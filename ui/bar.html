@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<meta charset="utf-8">
+<title>Wander Overlay quick bar</title>
+<link rel="stylesheet" href="theme.css">
+<style>
+/* Two fixed buttons on top; the options pop into their own panel below, so
+   nothing moves under the laser. */
+body { padding: 5px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.box { display: flex; gap: 8px; height: 80px; padding: 8px; background: var(--surface); border: 2px solid var(--frame); border-radius: 18px; }
+#panel { display: none; width: 690px; } #panel.open { display: flex; animation: appear .14s ease-out; }
+button { flex: 1; min-width: 0; padding: 0; font-size: 22px; white-space: nowrap; }
+button:hover { background: var(--hover); } button:active, button.selected { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+#options, #close { flex: none; width: 64px; font-size: 28px; }
+#close.sure { width: 110px; font-size: 22px; background: var(--warn); color: var(--warn-text); border-color: var(--warn); }
+#less, #more { flex: none; width: 54px; font-size: 30px; } #opacity { flex: none; width: 66px; display: flex; align-items: center; justify-content: center; font-size: 22px; color: var(--muted); }
+[data-anchor] { flex: none; width: 60px; font-size: 19px; }
+.gap { flex: 0 0 6px; }
+</style>
+<div id="top" class="box">
+  <button id="options" type="button" title="Show or hide this overlay's options">⚙</button>
+  <button id="close" type="button" title="Remove this overlay: click twice">✕</button>
+</div>
+<div id="panel" class="box">
+  <button id="less" type="button" title="Less opaque">−</button><div id="opacity"></div><button id="more" type="button" title="More opaque">+</button>
+  <div class="gap"></div>
+  <button id="shape" type="button" title="Flat or curved">Curved</button>
+  <button id="fade" type="button" title="Fade out when turned away from you">Fade</button>
+  <div class="gap"></div>
+  <button data-anchor="head" type="button" title="Attach to your head">Head</button><button data-anchor="left" type="button" title="Attach to the left hand">L</button><button data-anchor="right" type="button" title="Attach to the right hand">R</button>
+</div>
+<script>
+// Presentation only: quick options for the capture this bar hangs under. Rust
+// says which capture that is and validates every queued action (src/shell.rs).
+const actions = [];
+let bar = null, sure = 0;
+const send = action => { if (bar && actions.length < 8) actions.push(action); };
+const set = (property, value) => send('overlay:' + bar.slot + ':' + property + ':' + value);
+const id = name => document.getElementById(name);
+window.drainActions = () => actions.splice(0).join('\n');
+window.setTheme = name => { document.documentElement.dataset.theme = name; };
+const unsure = () => { clearTimeout(sure); sure = 0; id('close').classList.remove('sure'); id('close').textContent = '✕'; };
+window.collapse = () => { id('panel').classList.remove('open'); id('options').classList.remove('selected'); unsure(); };
+id('options').addEventListener('click', () => id('options').classList.toggle('selected', id('panel').classList.toggle('open')));
+window.setBar = next => {
+  if (bar && bar.slot !== next.slot) collapse();
+  bar = next;
+  id('opacity').textContent = bar.opacity + '%';
+  id('shape').classList.toggle('selected', bar.curved);
+  id('fade').classList.toggle('selected', bar.fade);
+  for (const b of document.querySelectorAll('[data-anchor]')) b.classList.toggle('selected', b.dataset.anchor === bar.anchor);
+};
+const on = (name, click) => id(name).addEventListener('click', () => { if (bar) click(); });
+// Opacity moves in steps of 10 within the range Rust accepts.
+on('less', () => set('opacity', Math.max(20, bar.opacity - 10)));
+on('more', () => set('opacity', Math.min(100, bar.opacity + 10)));
+on('shape', () => set('curved', bar.curved ? 0 : 1));
+on('fade', () => set('fade', bar.fade ? 0 : 1));
+// The lit attach button puts the capture back in the room.
+for (const b of document.querySelectorAll('[data-anchor]'))
+  b.addEventListener('click', () => { if (bar) set('anchor', bar.anchor === b.dataset.anchor ? 'room' : b.dataset.anchor); });
+// Removing takes a second click within three seconds.
+on('close', () => {
+  if (sure) { unsure(); return send('close:' + bar.slot); }
+  id('close').classList.add('sure'); id('close').textContent = 'Sure?'; sure = setTimeout(unsure, 3000);
+});
+document.addEventListener('mousedown', e => e.preventDefault());
+window.loReady = true;
+</script>
+</html>

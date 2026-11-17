@@ -1,0 +1,76 @@
+{
+  "action_sets": [
+    {
+      "usage": "leftright",
+      "name": "/actions/overlay"
+    }
+  ],
+  "default_bindings": [
+    {
+      "controller_type": "pico_controller",
+      "binding_url": "pico_controller.json"
+    },
+    {
+      "controller_type": "oculus_touch",
+      "binding_url": "oculus_touch.json"
+    },
+    {
+      "controller_type": "knuckles",
+      "binding_url": "knuckles.json"
+    },
+    {
+      "controller_type": "frame_controller",
+      "binding_url": "frame_controller.json"
+    }
+  ],
+  "actions": [
+    {
+      "type": "pose",
+      "requirement": "optional",
+      "name": "/actions/overlay/in/pose"
+    },
+    {
+      "type": "boolean",
+      "requirement": "optional",
+      "name": "/actions/overlay/in/trigger"
+    },
+    {
+      "type": "boolean",
+      "requirement": "optional",
+      "name": "/actions/overlay/in/grip"
+    },
+    {
+      "type": "boolean",
+      "requirement": "optional",
+      "name": "/actions/overlay/in/right"
+    },
+    {
+      "type": "vector2",
+      "requirement": "optional",
+      "name": "/actions/overlay/in/scroll"
+    },
+    {
+      "type": "boolean",
+      "requirement": "optional",
+      "name": "/actions/overlay/in/keyboard"
+    },
+    {
+      "type": "boolean",
+      "requirement": "optional",
+      "name": "/actions/overlay/in/toggle"
+    }
+  ],
+  "localization": [
+    {
+      "language_tag": "en_US",
+      "/actions/overlay/in/scroll": "Scroll",
+      "/actions/overlay/in/pose": "Pointer pose",
+      "/actions/overlay/in/grip": "Move panel (thumbstick: distance)",
+      "/actions/overlay": "Wander Overlay",
+      "/actions/overlay/in/trigger": "Click or type",
+      "/actions/overlay/in/right": "Right-click mode (while touched)",
+      "/actions/overlay/in/keyboard": "Show or hide keyboard",
+      "/actions/overlay/in/toggle": "Hide or show all overlays"
+    }
+  ]
+}

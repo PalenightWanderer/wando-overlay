@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<meta charset="utf-8">
+<title>Wander Overlay keyboard</title>
+<link rel="stylesheet" href="theme.css">
+<style>
+/* Keys take nearly the whole 1760 x 540 view as flat tiles with hairline gaps:
+   the bigger they are, the easier to hit with a laser. Three blocks, each a
+   grid whose cells Rust assigns (src/keyboard.rs). */
+body { padding: 8px; }
+main { height: 524px; padding: 10px; background: var(--surface); border: 1px solid var(--frame); border-radius: 20px; }
+#keyboard { display: flex; gap: 14px; height: 476px; }
+.block { display: grid; grid-template-rows: repeat(6, 1fr); gap: 3px; }
+#b0 { flex: 15; grid-template-columns: repeat(60, 1fr); } #b1 { flex: 3; grid-template-columns: repeat(3, 1fr); } #b2 { flex: 4; grid-template-columns: repeat(4, 1fr); }
+button { transition: none; min-width: 0; padding: 0; border: 0; border-radius: 13px; white-space: nowrap; font-size: 25px; }
+/* Word labels are smaller than single characters and symbols. */
+button.word { font-size: 17px; }
+button.hover-left { box-shadow: inset 0 0 0 3px #50d2ff; }
+button.hover-right { box-shadow: inset 0 0 0 3px #ffb446; }
+button.hover-left.hover-right { box-shadow: inset 0 0 0 3px #50d2ff, inset 0 0 0 6px #ffb446; }
+button.pressed { background: var(--accent); color: var(--accent-text); } button.once { background: #526a2d; color: #fff; } button.locked { background: #7959a8; color: #fff; } button.latched { background: var(--warn); color: var(--warn-text); }
+footer { margin-top: 4px; font-size: 16px; line-height: 22px; color: var(--muted); display: flex; gap: 16px; } #modifiers { color: var(--warn); } #context { margin-left: auto; }
+.pointer { position: absolute; pointer-events: none; width: 14px; height: 14px; border: 2px solid; border-radius: 50%; transform: translate(-50%, -50%); display: none; }
+#p0 { border-color: #50d2ff; } #p1 { border-color: #ffb446; }
+</style>
+<main>
+  <div id="keyboard"><div id="b0" class="block"></div><div id="b1" class="block"></div><div id="b2" class="block"></div></div>
+  <footer><span id="modifiers">Shift Off</span><span>Trigger: key / click · Grip: move panel · Thumbstick: scroll</span><span id="context">Windows foreground</span></footer>
+</main>
+<div id="p0" class="pointer"></div><div id="p1" class="pointer"></div>
+<script>
+// Presentation only. Rust supplies validated IDs, labels and modifier state.
+// Controller pointers never steal DOM focus or use Ultralight's shared cursor.
+const pointers = [{ key: null, down: null, x: 0, y: 0 }, { key: null, down: null, x: 0, y: 0 }];
+// Key rectangles in view pixels. The layout never moves, so they are measured once.
+let keyRects = null;
+window.drainActions = () => '';
+window.setTheme = name => { document.documentElement.dataset.theme = name; };
+window.installLayout = definitions => {
+  for (const block of document.querySelectorAll('.block')) block.textContent = '';
+  keyRects = null;
+  for (const [id, block, row, column, columns, rows, label] of definitions) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.tabIndex = -1; b.dataset.key = id; b.textContent = label;
+    b.style.gridArea = (row + 1) + ' / ' + (column + 1) + ' / span ' + rows + ' / span ' + columns;
+    if (label.length > 1) b.className = 'word';
+    b.addEventListener('mousedown', e => e.preventDefault());
+    document.getElementById('b' + block).appendChild(b);
+  }
+};
+// A slow pointer keeps the key it is on until it is STICK pixels past that
+// key's edge, so a shaky hand near a border does not flicker between two keys.
+// One that travels more than SLOW pixels between two calls (120 a second) is
+// on its way to another key and gets whatever key it is over. The gaps between
+// keys belong to the nearest key within REACH pixels.
+const STICK = 14, REACH = 16, SLOW = 3;
+function keyAt(hand, x, y) {
+  if (!keyRects) keyRects = Array.from(document.querySelectorAll('[data-key]')).map(b => ({ id: Number(b.dataset.key), box: b.getBoundingClientRect() }));
+  const outside = k => Math.hypot(Math.max(k.box.left - x, 0, x - k.box.right), Math.max(k.box.top - y, 0, y - k.box.bottom));
+  // Enter exists twice, in the main block and on the number pad.
+  const p = pointers[hand], slow = Math.hypot(x - p.x, y - p.y) <= SLOW;
+  p.x = x; p.y = y;
+  if (slow && keyRects.some(k => k.id === p.key && outside(k) <= STICK)) return p.key;
+  let best = null, distance = REACH;
+  for (const k of keyRects) { const d = outside(k); if (d <= distance) { best = k.id; distance = d; if (d === 0) break; } }
+  return best;
+}
+function repaintPointers() {
+  for (const b of document.querySelectorAll('[data-key]')) {
+    const id = Number(b.dataset.key);
+    b.classList.toggle('hover-left', pointers[0].key === id);
+    b.classList.toggle('hover-right', pointers[1].key === id);
+    b.classList.toggle('pressed', pointers.some(p => p.down === id));
+  }
+}
+window.pointerAt = (hand, x, y, visible) => {
+  const cursor = document.getElementById('p' + hand);
+  cursor.style.display = visible ? 'block' : 'none';
+  cursor.style.left = x + 'px'; cursor.style.top = y + 'px';
+  const key = visible ? keyAt(hand, x, y) : null;
+  pointers[hand].key = key;
+  repaintPointers();
+  // Reading layout applies the changes now. Left pending, they are painted a frame late.
+  void cursor.offsetLeft;
+  return key === null ? '' : String(key);
+};
+window.pointerPress = (hand, id) => { pointers[hand].down = id; repaintPointers(); };
+window.pointerCancel = hand => { pointers[hand].down = null; repaintPointers(); };
+window.resetPointers = () => { for (let h = 0; h < 2; ++h) { pointers[h].key = null; pointers[h].down = null; document.getElementById('p' + h).style.display = 'none'; } repaintPointers(); };
+window.setKeyboardState = state => {
+  for (const [id, label] of state.labels) {
+    const b = document.querySelector('[data-key="' + id + '"]'); if (b) b.textContent = label;
+  }
+  for (const b of document.querySelectorAll('[data-key]')) {
+    const id = Number(b.dataset.key), shift = id === 160 || id === 161;
+    b.classList.toggle('once', shift && state.shift === 'Once');
+    b.classList.toggle('locked', shift && state.shift === 'Locked');
+    const bit = id === 162 || id === 163 ? 2 : id === 164 || id === 165 ? 1 : id === 91 || id === 92 ? 4 : shift ? 8 : 0;
+    b.classList.toggle('latched', !!(bit & state.mods) || (id === 20 && state.caps));
+  }
+  document.getElementById('modifiers').textContent = 'Shift ' + state.shift + (state.caps ? ' · Caps Lock' : '') + (state.mods & 2 ? ' · Ctrl' : '') + (state.mods & 1 ? ' · Alt' : '') + (state.mods & 4 ? ' · Win' : '');
+};
+window.setContext = local => { document.getElementById('context').textContent = local ? 'Overlay text' : 'Windows foreground'; };
+window.loReady = true;
+</script>
+</html>

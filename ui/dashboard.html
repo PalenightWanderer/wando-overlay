@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<meta charset="utf-8">
+<title>Wander Overlay dashboard</title>
+<link rel="stylesheet" href="theme.css">
+<style>
+body { padding: 8px; }
+main { display: flex; flex-direction: column; height: 744px; background: var(--surface); border: 2px solid var(--frame); border-radius: 24px; overflow: hidden; }
+header { display: flex; align-items: center; gap: 18px; height: 66px; padding: 0 12px 0 24px; border-bottom: 2px solid var(--frame); }
+header strong { font-size: 24px; font-weight: 600; white-space: nowrap; } header .spacer { flex: 1; }
+#time { font-size: 26px; font-weight: 600; white-space: nowrap; } #session { font-size: 19px; color: var(--muted); white-space: nowrap; }
+#hide { width: 56px; height: 48px; padding: 0; font-size: 24px; }
+#body { flex: 1; min-height: 0; display: flex; }
+nav { width: 184px; padding: 16px 12px; display: flex; flex-direction: column; gap: 8px; border-right: 2px solid var(--frame); }
+nav button { height: 58px; padding: 0 18px; text-align: left; font-size: 22px; border-color: transparent; background: transparent; }
+nav .spacer { flex: 1; } #quit { height: 46px; font-size: 18px; color: var(--muted); }
+button:hover { background: var(--hover); } button:active { background: var(--accent); color: var(--accent-text); }
+button.selected { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+button.sure { background: var(--warn); color: var(--warn-text); border-color: var(--warn); }
+section { flex: 1; min-width: 0; padding: 18px 22px; display: none; flex-direction: column; }
+section.shown { display: flex; animation: appear .16s ease-out; }
+h1 { margin: 0 0 12px; font-size: 26px; font-weight: 600; } h2 { margin: 16px 0 10px; font-size: 20px; font-weight: 600; color: var(--muted); }
+.head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; } .head h1 { margin: 0; }
+.head button, .row button { height: 54px; padding: 0 22px; }
+.scroll { flex: 1; min-height: 0; overflow-y: auto; padding-right: 18px; }
+.row { display: flex; align-items: center; gap: 14px; min-height: 76px; padding: 10px 16px; margin-bottom: 10px; background: var(--raised); border: 1px solid var(--border); border-radius: 10px; }
+.row .name { flex: 1; min-width: 0; } .title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.detail { font-size: 17px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.empty { color: var(--muted); padding: 12px 4px; }
+.credits { white-space: normal; line-height: 1.4; padding-bottom: 12px; }
+/* One open capture: its name and remove button, then its options in one strip. */
+.overlay { padding: 10px 14px; margin-bottom: 10px; background: var(--raised); border: 1px solid var(--border); border-radius: 10px; }
+.overlay .top { display: flex; align-items: center; gap: 12px; } .overlay .name { flex: 1; min-width: 0; }
+.strip { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
+.strip button, .overlay .top button, .core button { height: 46px; padding: 0 14px; font-size: 19px; background: var(--surface); }
+.strip button:hover, .overlay .top button:hover, .core button:hover { background: var(--hover); }
+.strip button.selected, .core button.selected { background: var(--accent); } .strip button.sure, .overlay .top button.sure { background: var(--warn); }
+.strip .step { width: 46px; padding: 0; font-size: 24px; } .strip output { width: 58px; text-align: center; font-size: 19px; color: var(--muted); }
+.strip .gap { flex: 0 0 10px; } .strip .spacer { flex: 1; }
+.core { display: flex; align-items: center; gap: 8px; min-height: 60px; padding: 6px 14px; margin-bottom: 8px; background: var(--raised); border: 1px solid var(--border); border-radius: 10px; }
+.core .name { flex: 1; }
+#replacing { display: none; align-items: center; gap: 14px; padding: 8px 16px; margin: 8px 0; border: 1px solid var(--warn); border-radius: 10px; }
+#replacing.shown { display: flex; } #replacing .title { flex: 1; min-width: 0; } #replacing button { height: 48px; padding: 0 20px; }
+#displays { display: flex; flex-wrap: wrap; gap: 12px; }
+#displays .source { width: 270px; }
+.source { display: block; width: 100%; min-height: 72px; padding: 10px 16px; margin-bottom: 10px; text-align: left; }
+.source.open { border-color: var(--ok); }
+/* Always visible rather than hover-only: a laser pointer rarely rests on a row. */
+.minimized { display: inline-block; margin-top: 6px; padding: 3px 12px; border-radius: 6px; background: var(--warn); color: var(--warn-text); font-size: 17px; font-weight: 600; }
+.options { display: flex; gap: 10px; } .options button { height: 56px; min-width: 96px; padding: 0 18px; }
+.setting { display: flex; align-items: center; justify-content: space-between; min-height: 72px; }
+.setting span { font-size: 22px; }
+.preset-name { width: 100%; max-width: 440px; height: 42px; padding: 0 10px; margin-bottom: 4px; font: inherit; font-size: 22px; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; }
+.preset-name:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+/* Drag anywhere on the track, or click a spot. The value is sent on release. */
+.slider { display: flex; align-items: center; gap: 18px; } .slider output { width: 84px; text-align: right; font-size: 22px; }
+.track { position: relative; width: 420px; height: 56px; }
+.bar, .fill { position: absolute; left: 0; top: 23px; height: 10px; border-radius: 5px; } .bar { right: 0; background: var(--border); } .fill { background: var(--accent); }
+.knob { position: absolute; top: 10px; width: 36px; height: 36px; margin-left: -18px; border-radius: 50%; background: var(--text); border: 3px solid var(--accent); }
+#notice { min-height: 28px; margin-top: 8px; color: var(--warn); font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+</style>
+<main>
+  <header>
+    <strong>Wander Overlay</strong>
+    <div class="spacer"></div>
+    <span id="session"></span><span id="time">--:--</span>
+    <button type="button" id="hide" title="Close the dashboard">✕</button>
+  </header>
+  <div id="body">
+    <nav>
+      <button type="button" data-tab="overlays">Overlays</button>
+      <button type="button" data-tab="add">Add</button>
+      <button type="button" data-tab="presets">Presets</button>
+      <button type="button" data-tab="settings">Settings</button>
+      <div class="spacer"></div>
+      <button type="button" id="quit" title="Quit Wander Overlay: click twice">Quit</button>
+    </nav>
+    <section id="tab-overlays">
+      <div class="scroll">
+        <div id="overlays"></div>
+        <h2>Built in</h2>
+        <div class="core"><div class="name">Keyboard</div><button type="button" data-set="fade_keyboard" title="Fade out when turned away from you">Fade</button><button type="button" id="keyboard">Show</button></div>
+        <div class="core"><div class="name">Wrist clock</div><button type="button" data-set="fade_clock" title="Fade out when turned away from you">Fade</button></div>
+        <div class="core"><div class="name">This dashboard</div><button type="button" data-set="fade_dashboard" title="Fade out when turned away from you">Fade</button></div>
+      </div>
+      <div id="notice"></div>
+    </section>
+    <section id="tab-add">
+      <div class="head"><h1 id="add-title">Add a display or window</h1><button type="button" id="refresh">Refresh</button></div>
+      <div id="replacing"><div class="title"></div><button type="button" id="keep">Keep it as it is</button></div>
+      <div class="scroll">
+        <h2>Displays</h2><div id="displays"></div>
+        <h2>Windows</h2><div id="windows"></div>
+      </div>
+    </section>
+    <section id="tab-presets">
+      <div class="detail" style="margin-bottom:12px">A preset remembers the open displays and windows, where each one is and how it looks, and the keyboard. Loading one replaces what is open now. Click a name to type a new one.</div>
+      <div class="scroll" id="presets"></div>
+    </section>
+    <section id="tab-settings">
+      <div class="scroll">
+        <h2 style="margin-top:0">Appearance</h2>
+        <div class="setting"><span>Theme</span><div class="options"><button type="button" data-set="theme:dark">Dark</button><button type="button" data-set="theme:light">Light</button></div></div>
+        <div class="setting"><span>Clock</span><div class="options"><button type="button" data-set="clock:24">24-hour</button><button type="button" data-set="clock:12">12-hour</button></div></div>
+        <h2>Pointer</h2>
+        <div class="setting"><span>Steadying</span><div class="slider" data-slider="smoothing" data-min="0" data-max="100" data-step="5"></div></div>
+        <h2>New overlays</h2>
+        <div class="setting"><span>Shape</span><div class="options"><button type="button" data-set="curved:0">Flat</button><button type="button" data-set="curved:1">Curved</button></div></div>
+        <div class="setting"><span>Opacity</span><div class="slider" data-slider="opacity" data-min="20" data-max="100" data-step="5"></div></div>
+        <div class="setting"><span>Size</span><div class="slider" data-slider="scale" data-min="25" data-max="300" data-step="5"></div></div>
+        <div class="setting"><span>Distance</span><div class="slider" data-slider="distance" data-min="50" data-max="400" data-step="10"></div></div>
+        <h2>Keyboard</h2>
+        <div class="setting"><span>Layout</span><div class="options"><button type="button" data-set="keyboard:full">Full (US)</button></div></div>
+        <h2>Controllers</h2>
+        <div class="setting"><span>Change which buttons click, grab and scroll</span><div class="options"><button type="button" id="bindings">Open SteamVR bindings</button></div></div>
+        <h2>Credits</h2>
+        <div class="detail credits">Menus are drawn with Ultralight™. Ultralight (c) 2026 Ultralight, Inc. All rights reserved. Ultralight is a trademark of Ultralight, Inc. Please see the accompanying NOTICES.md for full text. Its use is subject to the Ultralight EULA. Both files are in the licenses folder next to Wander Overlay.exe, along with the OpenVR license.</div>
+      </div>
+    </section>
+  </div>
+</main>
+<script>
+// Presentation only. Rust supplies sources and state, and validates every
+// queued action string before acting on it (see Command in src/shell.rs).
+const actions = [];
+let sources = { monitors: [], windows: [] };
+let state = { captures: [], capacity: 0, keyboard: false, settings: {}, presets: [], notice: '' };
+// Slot of the overlay whose source the Add screen is choosing a replacement for.
+let replacing = null, tab = '';
+const send = action => { if (actions.length < 8) actions.push(action); };
+window.drainActions = () => actions.splice(0).join('\n');
+window.setTheme = name => { document.documentElement.dataset.theme = name; };
+window.setClock = (time, session) => {
+  document.getElementById('time').textContent = time;
+  document.getElementById('session').textContent = 'SteamVR ' + session;
+};
+window.showTab = name => {
+  tab = name;
+  for (const s of document.querySelectorAll('section')) s.classList.toggle('shown', s.id === 'tab-' + name);
+  for (const b of document.querySelectorAll('[data-tab]')) b.classList.toggle('selected', b.dataset.tab === name);
+  replacing = null;
+  if (name === 'add') send('refresh');
+  render();
+};
+// Windows open and close on their own: keep the Add list current while it is shown.
+setInterval(() => { if (tab === 'add' && !actions.length) send('refresh'); }, 3000);
+const element = (tag, className, text) => { const e = document.createElement(tag); if (className) e.className = className; if (text !== undefined) e.textContent = text; return e; };
+const button = (label, click) => { const b = element('button', '', label); b.type = 'button'; b.addEventListener('click', click); return b; };
+// A button that acts on its second click within three seconds.
+const pending = {};
+const confirmed = (key, redraw) => {
+  if (pending[key]) { clearTimeout(pending[key]); delete pending[key]; return true; }
+  pending[key] = setTimeout(() => { delete pending[key]; redraw(); }, 3000); redraw(); return false;
+};
+const describe = capture => {
+  const list = capture.window ? sources.windows : sources.monitors;
+  const source = list.find(s => s.id === capture.id);
+  if (!source) return capture.window ? 'Window' : 'Display';
+  return capture.window ? source.title : source.name;
+};
+// Sliders. Rust accepts any whole number in the value's range (src/settings.rs).
+const labels = { scale: v => v + '%', opacity: v => v + '%', distance: v => (v / 100).toFixed(1) + ' m', smoothing: v => v ? v + '%' : 'Off' };
+// The slider being dragged. One at a time: there is one press across the page.
+let dragged = null;
+function makeSlider(root, release) {
+  const min = Number(root.dataset.min), max = Number(root.dataset.max), step = Number(root.dataset.step);
+  const track = element('div', 'track'), fill = element('div', 'fill'), knob = element('div', 'knob'), output = element('output');
+  track.appendChild(element('div', 'bar')); track.appendChild(fill); track.appendChild(knob);
+  root.appendChild(track); root.appendChild(output);
+  const slider = { root, release, value: min };
+  slider.show = value => {
+    if (typeof value !== 'number') return;
+    slider.value = value; const part = (value - min) / (max - min) * 100;
+    fill.style.width = part + '%'; knob.style.left = part + '%';
+    output.textContent = labels[root.dataset.slider](value);
+  };
+  slider.at = e => {
+    // A cancelled press is reported far outside the page; keep the last value.
+    if (e.clientX < 0) return;
+    const r = track.getBoundingClientRect(), part = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+    slider.show(Math.round((min + part * (max - min)) / step) * step);
+  };
+  track.addEventListener('mousedown', e => { dragged = slider; slider.at(e); });
+  return slider;
+}
+document.addEventListener('mousemove', e => { if (dragged) dragged.at(e); });
+document.addEventListener('mouseup', () => { if (dragged) { const slider = dragged; dragged = null; slider.release(slider.value); } });
+const sliders = Array.from(document.querySelectorAll('[data-slider]')).map(root => makeSlider(root, value => send('set:' + root.dataset.slider + ':' + value)));
+// Each list is rebuilt only when what it shows changed, so a refresh does not
+// pull a button out from under the laser.
+const shown = {};
+const changed = (name, value) => { const key = JSON.stringify(value); if (shown[name] === key) return false; shown[name] = key; return true; };
+function render() {
+  const open = id => state.captures.some(c => c.id === id);
+  // While replacing, a click on a source swaps it into that overlay.
+  const pick = (kind, id) => {
+    if (replacing === null) return send(kind + ':' + id);
+    send('overlay:' + replacing + ':' + kind + ':' + id); showTab('overlays');
+  };
+  const target = state.captures.find(c => c.slot === replacing);
+  if (!target) replacing = null;
+  document.getElementById('add-title').textContent = target ? 'Show something else' : 'Add a display or window';
+  document.getElementById('replacing').classList.toggle('shown', !!target);
+  if (target) document.querySelector('#replacing .title').textContent = 'Pick what replaces “' + describe(target) + '”. It keeps its place and size.';
+  if (changed('sources', [sources, state.captures.map(c => c.id)])) {
+    const displays = document.getElementById('displays'); displays.textContent = '';
+    for (const m of sources.monitors) {
+      const b = element('button', 'source' + (open(m.id) ? ' open' : '')); b.type = 'button';
+      b.appendChild(element('div', 'title', m.name + (m.primary ? ' (primary)' : '')));
+      b.appendChild(element('div', 'detail', m.w + ' × ' + m.h + (open(m.id) ? ' · open' : '')));
+      b.addEventListener('click', () => pick('monitor', m.id)); displays.appendChild(b);
+    }
+    if (!sources.monitors.length) displays.appendChild(element('div', 'empty', 'No displays found.'));
+    const windows = document.getElementById('windows'); windows.textContent = '';
+    for (const w of sources.windows) {
+      const b = element('button', 'source' + (open(w.id) ? ' open' : '')); b.type = 'button';
+      b.dataset.title = w.title;
+      b.appendChild(element('div', 'title', w.title));
+      b.appendChild(element('div', 'detail', w.app + (open(w.id) ? ' · open' : '')));
+      if (w.minimized) b.appendChild(element('div', 'minimized', 'Minimized — it will be restored on your desktop when added'));
+      b.addEventListener('click', () => pick('window', w.id)); windows.appendChild(b);
+    }
+    if (!sources.windows.length) windows.appendChild(element('div', 'empty', 'No windows found.'));
+  }
+  renderOverlays();
+  document.getElementById('keyboard').textContent = state.keyboard ? 'Hide' : 'Show';
+  document.getElementById('notice').textContent = state.notice;
+  renderPresets();
+  for (const b of document.querySelectorAll('[data-set]')) {
+    const [key, value] = b.dataset.set.split(':'), now = state.settings[key];
+    // A button without a value is an on/off switch.
+    b.classList.toggle('selected', value === undefined ? !!now : String(now) === value || (key === 'curved' && now === (value === '1')));
+  }
+  for (const slider of sliders) if (dragged !== slider) slider.show(state.settings[slider.root.dataset.slider]);
+  document.getElementById('quit').classList.toggle('sure', !!pending.quit);
+  document.getElementById('quit').textContent = pending.quit ? 'Quit? Click again' : 'Quit';
+}
+function renderOverlays() {
+  if (!changed('overlays', [state.captures, state.captures.map(describe), Object.keys(pending)])) return;
+  const list = document.getElementById('overlays'); list.textContent = '';
+  for (const c of state.captures) {
+    const set = (property, value) => send('overlay:' + c.slot + ':' + property + ':' + value);
+    const box = element('div', 'overlay'), top = element('div', 'top'), name = element('div', 'name'), strip = element('div', 'strip');
+    name.appendChild(element('div', 'title', describe(c)));
+    const place = { room: '', head: ' · follows your head', left: ' · on the left controller', right: ' · on the right controller' }[c.anchor];
+    name.appendChild(element('div', 'detail', (c.window ? 'Window' : 'Display') + (c.lost ? (c.window ? ' · not open, waiting for it' : ' · lost, waiting for it to return') : c.ready ? ' · ' + c.width + ' × ' + c.height : ' · waiting for the first frame') + place));
+    const key = 'close' + c.slot;
+    const close = button(pending[key] ? 'Remove? Click again' : '✕', () => { if (confirmed(key, renderOverlays)) send('close:' + c.slot); });
+    close.classList.toggle('sure', !!pending[key]);
+    top.appendChild(name); top.appendChild(close); box.appendChild(top);
+    // The strip's buttons carry data-act so tests and the diagnostic can find them.
+    const add = (act, label, click, className, lit) => { const b = button(label, click); b.dataset.act = act; if (className) b.className = className; b.classList.toggle('selected', !!lit); strip.appendChild(b); };
+    close.dataset.act = 'close';
+    add('less', '−', () => set('opacity', Math.max(20, c.opacity - 10)), 'step');
+    strip.appendChild(element('output', '', c.opacity + '%'));
+    add('more', '+', () => set('opacity', Math.min(100, c.opacity + 10)), 'step');
+    strip.appendChild(element('div', 'gap'));
+    add('curved', 'Curved', () => set('curved', c.curved ? 0 : 1), '', c.curved);
+    add('fade', 'Fade', () => set('fade', c.fade ? 0 : 1), '', c.fade);
+    strip.appendChild(element('div', 'gap'));
+    for (const [anchor, label] of [['head', 'Head'], ['left', 'L hand'], ['right', 'R hand']])
+      add(anchor, label, () => set('anchor', c.anchor === anchor ? 'room' : anchor), '', c.anchor === anchor);
+    strip.appendChild(element('div', 'spacer'));
+    add('source', 'Swap…', () => { showTab('add'); replacing = c.slot; render(); });
+    box.appendChild(strip); list.appendChild(box);
+  }
+  if (!state.captures.length) list.appendChild(element('div', 'empty', 'No displays or windows are open. Use Add to place one in your space.'));
+}
+// Rebuilt only when the presets change, and never while a name is being typed.
+let presetsShown = '';
+function renderPresets() {
+  const list = document.getElementById('presets'), key = JSON.stringify(state.presets);
+  if (key === presetsShown || list.contains(document.activeElement)) return;
+  presetsShown = key; list.textContent = '';
+  state.presets.forEach((preset, index) => {
+    const number = index + 1, row = element('div', 'row'), name = element('div', 'name');
+    const field = element('input', 'preset-name'); field.type = 'text'; field.maxLength = 40;
+    field.value = preset ? preset.name : ''; field.placeholder = 'Preset ' + number; field.dataset.name = number;
+    // Leaving the field (Enter, or clicking elsewhere) renames a saved preset.
+    field.onblur = () => { if (preset && field.value.trim() !== preset.name) send('preset:rename:' + number + ':' + field.value); };
+    field.addEventListener('keydown', e => { if (e.key === 'Enter' || e.keyCode === 13) field.blur(); });
+    name.appendChild(field);
+    name.appendChild(element('div', 'detail', preset ? preset.summary : 'Empty'));
+    row.appendChild(name);
+    for (const [action, label] of preset ? [['load', 'Load'], ['save', 'Overwrite'], ['delete', 'Delete']] : [['save', 'Save current']]) {
+      const b = button(label, () => {
+        // Saving takes the typed name itself; leaving the field must not rename too.
+        field.onblur = null; field.blur();
+        send('preset:' + action + ':' + number + (action === 'save' ? ':' + field.value : ''));
+        presetsShown = ''; renderPresets();
+      });
+      b.dataset.preset = action + ':' + number;
+      row.appendChild(b);
+    }
+    list.appendChild(row);
+  });
+}
+window.setSources = list => { sources = list; render(); };
+window.setState = next => { state = next; render(); };
+for (const b of document.querySelectorAll('[data-tab]')) b.addEventListener('click', () => showTab(b.dataset.tab));
+for (const b of document.querySelectorAll('[data-set]')) b.addEventListener('click', () => {
+  const [key, value] = b.dataset.set.split(':');
+  send('set:' + key + ':' + (value === undefined ? (state.settings[key] ? 0 : 1) : value));
+});
+for (const [id, action] of [['hide', 'dashboard'], ['keyboard', 'keyboard'], ['refresh', 'refresh'], ['bindings', 'bindings']])
+  document.getElementById(id).addEventListener('click', () => send(action));
+document.getElementById('quit').addEventListener('click', () => { if (confirmed('quit', render)) send('quit'); });
+document.getElementById('keep').addEventListener('click', () => showTab('overlays'));
+// Buttons must not take keyboard focus away from a typing target.
+document.addEventListener('mousedown', e => { if (!e.target.closest('input')) e.preventDefault(); });
+showTab('overlays'); actions.length = 0;
+window.loReady = true;
+</script>
+</html>
