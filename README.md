@@ -2,7 +2,8 @@
 
 **Wando Overlay** (Wander's Overlay) is a lightweight, open source SteamVR overlay for Windows 11/10. It lets you see and use your desktop and individual windows from inside your headset!
 
-> **This is an early prototype.** It works, but it has mostly been tested with one headset on my one PC, so expect some rough edges.
+> [!NOTE]
+> **Early alpha!** It works, but it has mostly been tested with one headset on my one PC, so expect some rough edges.
 
 This is for anyone who is in VR and still needs to use their PC: like using a browser, managing OBS while streaming, checking Discord, or anything else.
 If you play performance-heavy games (namely VRChat... The other ones aren't real) and want an overlay that stays out of the way, try this out.
