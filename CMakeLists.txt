@@ -20,6 +20,8 @@ target_link_libraries(overlay-platform PRIVATE ul_driver windowsapp dwmapi "${CM
 ultralight_copy_runtime_files(overlay-platform)
 add_custom_target(overlay-assets ALL
   COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/vendor/openvr/bin/win64/openvr_api.dll" "$<TARGET_FILE_DIR:overlay-platform>"
+  # Clear first so files deleted from ui/ or input/ don't linger in builds.
+  COMMAND ${CMAKE_COMMAND} -E rm -rf "$<TARGET_FILE_DIR:overlay-platform>/assets/ui" "$<TARGET_FILE_DIR:overlay-platform>/assets/input"
   COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/ui" "$<TARGET_FILE_DIR:overlay-platform>/assets/ui"
   COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/input" "$<TARGET_FILE_DIR:overlay-platform>/assets/input"
   DEPENDS overlay-platform)
